@@ -199,9 +199,16 @@ class MoviePlayer(InfoBarBase, InfoBarShowHide, \
 			self.leavePlayerConfirmed([True, how])
 
 	def leavePlayer(self):
+# TMTWIN
+		trickstate=self.seekstate
 		setResumePoint(self.session)
+# TMTWIN
+		if trickstate == self.SEEK_STATE_PAUSE:
+			self.setSeekState(self.SEEK_STATE_PLAY)
 		self.handleLeave(config.usage.on_movie_stop.value)
-
+# TMTWIN
+		if trickstate == self.SEEK_STATE_PAUSE:
+			self.setSeekState(self.SEEK_STATE_PAUSE)
 	def deleteConfirmed(self, answer):
 		if answer:
 			self.leavePlayerConfirmed((True, "quitanddeleteconfirmed"))
