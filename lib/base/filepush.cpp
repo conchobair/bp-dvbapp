@@ -177,12 +177,32 @@ void eFilePushThread::thread()
 				/* on EOF, try COMMITting once. */
 			if (m_send_pvr_commit)
 			{
+#if TMTWIN|1
+				int f_video_depth;
+				char video_depth[3];
+#endif
 				struct pollfd pfd;
 				pfd.fd = m_fd_dest;
 				pfd.events = POLLIN;
 				switch (poll(&pfd, 1, 250)) // wait for 250ms
 				{
 					case 0:
+#if TMTWIN|1
+						/* to quit from the end of media file */
+						f_video_depth = open("/proc/stb/lcd/video_fifo_depth", O_RDONLY);
+						if(f_video_depth < 0)
+							continue;
+
+						if(read(f_video_depth, video_depth, 3))
+						{
+							if(atoi(video_depth) < 5)
+							{
+								close(f_video_depth);
+								break;
+							}
+						}
+						close(f_video_depth);
+#endif
 						eDebug("wait for driver eof timeout");
 						continue;
 					case 1:
@@ -258,7 +278,9 @@ void eFilePushThread::stop()
 		/* if we aren't running, don't bother stopping. */
 	if (!sync())
 		return;
-
+#if TMTWIN|1
+   system("echo 3 > /proc/sys/vm/drop_caches");
+#endif
 	m_stop = 1;
 
 	eDebug("stopping thread."); /* just do it ONCE. it won't help to do this more than once. */
