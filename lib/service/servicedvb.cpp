@@ -1517,7 +1517,10 @@ RESULT eDVBServicePlay::unpause()
 RESULT eDVBServicePlay::seekTo(pts_t to)
 {
 	eDebug("eDVBServicePlay::seekTo: jump %lld", to);
-	
+#if TMTWIN|1
+   if(m_is_paused)
+      m_decoder->play();
+#endif	
 	if (!m_decode_demux)
 		return -1;
 
@@ -1532,7 +1535,10 @@ RESULT eDVBServicePlay::seekTo(pts_t to)
 	m_cue->seekTo(0, to);
 	m_dvb_subtitle_pages.clear();
 	m_subtitle_pages.clear();
-
+#if TMTWIN|1
+   if(m_is_paused)
+		m_decoder->pause();
+#endif
 	return 0;
 }
 
@@ -1542,7 +1548,10 @@ RESULT eDVBServicePlay::seekRelative(int direction, pts_t to)
 	
 	if (!m_decode_demux)
 		return -1;
-
+#if TMTWIN|1
+   if(m_is_paused)
+      m_decoder->play();
+#endif
 	ePtr<iDVBPVRChannel> pvr_channel;
 	
 	if ((m_timeshift_enabled ? m_service_handler_timeshift : m_service_handler).getPVRChannel(pvr_channel))
@@ -1562,6 +1571,10 @@ RESULT eDVBServicePlay::seekRelative(int direction, pts_t to)
 	m_cue->seekTo(mode, to);
 	m_dvb_subtitle_pages.clear();
 	m_subtitle_pages.clear();
+#if TMTWIN|1
+   if(m_is_paused)
+		m_decoder->pause();
+#endif
 	return 0;
 }
 
@@ -2510,7 +2523,10 @@ void eDVBServicePlay::switchToLive()
 {
 	if (!m_timeshift_active)
 		return;
-
+#if TMTWIN|1
+    if(m_is_paused)
+        m_decoder->play();
+#endif
 	eDebug("SwitchToLive");
 
 	resetTimeshift(0);
@@ -2794,7 +2810,7 @@ void eDVBServicePlay::loadCuesheet()
 			if (!fread(&what, sizeof(what), 1, f))
 				break;
 			
-			where = be64toh(where);
+			where = bswap_64(where);
 			what = ntohl(what);
 			
 			if (what > 3)
@@ -2825,7 +2841,11 @@ void eDVBServicePlay::saveCuesheet()
 
 		for (std::multiset<cueEntry>::iterator i(m_cue_entries.begin()); i != m_cue_entries.end(); ++i)
 		{
-			where = htobe64(i->where);
+#if BYTE_ORDER == BIG_ENDIAN			
+			where = i->where;
+#else
+			where = bswap_64(i->where);
+#endif			
 			what = htonl(i->what);
 			fwrite(&where, sizeof(where), 1, f);
 			fwrite(&what, sizeof(what), 1, f);
